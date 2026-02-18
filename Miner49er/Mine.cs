@@ -57,7 +57,7 @@ namespace Miner49er
         private void mineDamage(FSA fsa)
         {
             durability++;
-            Console.WriteLine("  Mine: limit " + durability + "/10");
+            Console.WriteLine("Mine: limit " + durability + "/10");
         }
 
         private void closeMine(FSA fsa)

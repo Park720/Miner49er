@@ -51,14 +51,6 @@ namespace Miner49er
             miningState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.pocketsFull) },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, bankingState);
-            //Mine -> Unemployed
-            miningState.addTransition("MineClose",
-                new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.closeMine) }, unemployedState);
-            //Mine -> Mine (reopen)
-            miningState.addTransition("MineOpen",
-                new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.openMine) }, miningState);
             //Keep Mining
             miningState.addTransition("tick",
                 new ConditionDelegate[] { },
@@ -74,14 +66,6 @@ namespace Miner49er
             drinkingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.exhausted) },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, sleepingState);
-            // Drink -> Mine(Unemployed)
-            drinkingState.addTransition("CloseMine",
-                new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.mineClosing) }, unemployedState);
-            // Drink -> Mine (reopen)
-            drinkingState.addTransition("OpenMine",
-                new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.mineOpening) }, miningState);
             // Drink -> Mine
             drinkingState.addTransition("tick",
                 new ConditionDelegate[] { },
@@ -98,14 +82,6 @@ namespace Miner49er
             sleepingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.thirsty) },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, drinkingState);
-            // Sleep -> Mine(Unemployed)
-            sleepingState.addTransition("MineClose",
-                new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.mineClosing) }, unemployedState);
-            // Sleep -> Mine (reopen)
-            sleepingState.addTransition("MineOpen",
-                new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.mineOpening) }, miningState);
             // Sleep -> Mine
             sleepingState.addTransition("tick",
                 new ConditionDelegate[] { },
@@ -125,14 +101,6 @@ namespace Miner49er
             bankingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.exhausted) },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, sleepingState);
-            // Bank -> Mine (Unemployed)
-            bankingState.addTransition("MineClose",
-                new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.mineClosing) }, unemployedState);
-            // Bank -> Mine (reopen)
-            bankingState.addTransition("MineOpen",
-                new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.mineOpening) }, miningState);
             // Bank -> Mine
             bankingState.addTransition("tick",
                 new ConditionDelegate[] { },
@@ -156,9 +124,15 @@ namespace Miner49er
                 new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.unemployed) }, unemployedState);
 
-            unemployedState.addTransition("MineOpen",
+            //Any State -> MineClose
+            addPervasiveTransition("MineClose",
                 new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.mineOpening) }, miningState);
+                new ActionDelegate[] { new ActionDelegate(this.closeMine) }, unemployedState);
+
+            // Mine Open -> Any State
+            addPervasiveTransition("MineOpen",
+                new ConditionDelegate[] { },
+                new ActionDelegate[] { new ActionDelegate(this.openMine) }, miningState);
 
             // FIXED: Using PascalCase to match your FSAImpl.SetCurrentState method
             SetCurrentState(miningState);
