@@ -16,6 +16,9 @@ namespace Miner49er
         public int bank = 0;
         //How tired the miner is ...
         public int tired = 0;
+        // Whether the mine is open or closed (if closed, the miner is unemployed)
+        public Boolean isMineOpen = true;
+
 
         // The following variables are each oen of the defiend states the miner cna be in.
         State miningState;
@@ -36,59 +39,107 @@ namespace Miner49er
 
 
             // set mining transitions
-
+            //Mine -> Drink
             miningState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.parched) },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, drinkingState);
-
+            //Mine -> Sleep
             miningState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.exhausted) },
                 new ActionDelegate[] { }, sleepingState);
-
+            //Mine -> Bank
             miningState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.pocketsFull) },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, bankingState);
-            
+            //Mine -> Unemployed
+            miningState.addTransition("MineClose",
+                new ConditionDelegate[] { },
+                new ActionDelegate[] { new ActionDelegate(this.closeMine) }, unemployedState);
+            //Mine -> Mine (reopen)
+            miningState.addTransition("MineOpen",
+                new ConditionDelegate[] { },
+                new ActionDelegate[] { new ActionDelegate(this.openMine) }, miningState);
+            //Keep Mining
             miningState.addTransition("tick",
-                new ConditionDelegate[] { }, 
+                new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.dig) }, miningState);
 
+
             // set drinking transitions
+            // Keep Drinking
             drinkingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.thirsty) },
                 new ActionDelegate[] { new ActionDelegate(this.takeDrink) }, drinkingState);
-
+            //Drink -> Sleep
+            drinkingState.addTransition("tick",
+                new ConditionDelegate[] { new ConditionDelegate(this.exhausted) },
+                new ActionDelegate[] { new ActionDelegate(this.moving) }, sleepingState);
+            // Drink -> Mine(Unemployed)
+            drinkingState.addTransition("CloseMine",
+                new ConditionDelegate[] { },
+                new ActionDelegate[] { new ActionDelegate(this.mineClosing) }, unemployedState);
+            // Drink -> Mine (reopen)
+            drinkingState.addTransition("OpenMine",
+                new ConditionDelegate[] { },
+                new ActionDelegate[] { new ActionDelegate(this.mineOpening) }, miningState);
+            // Drink -> Mine
             drinkingState.addTransition("tick",
                 new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, miningState);
 
+
+
             // set sleeping transitions
+            // Keep sleeping
             sleepingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.isTired) },
                 new ActionDelegate[] { new ActionDelegate(this.takeSleep) }, sleepingState);
-
+            // Sleep -> Drink
+            sleepingState.addTransition("tick",
+                new ConditionDelegate[] { new ConditionDelegate(this.thirsty) },
+                new ActionDelegate[] { new ActionDelegate(this.moving) }, drinkingState);
+            // Sleep -> Mine(Unemployed)
+            sleepingState.addTransition("MineClose",
+                new ConditionDelegate[] { },
+                new ActionDelegate[] { new ActionDelegate(this.mineClosing) }, unemployedState);
+            // Sleep -> Mine (reopen)
+            sleepingState.addTransition("MineOpen",
+                new ConditionDelegate[] { },
+                new ActionDelegate[] { new ActionDelegate(this.mineOpening) }, miningState);
+            // Sleep -> Mine
             sleepingState.addTransition("tick",
                 new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, miningState);
 
+
             // set banking transitions
+            //Keep Saving
             bankingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.pocketsNotEmpty) },
                 new ActionDelegate[] { new ActionDelegate(this.depositGold) }, bankingState);
-
+            // Bank -> Drink
             bankingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.parched) },
-                new ActionDelegate[] { }, drinkingState);
-
+                new ActionDelegate[] { new ActionDelegate(this.moving) }, drinkingState);
+            // Bank -> Sleep
             bankingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.exhausted) },
-                new ActionDelegate[] { }, sleepingState);
-
+                new ActionDelegate[] { new ActionDelegate(this.moving) }, sleepingState);
+            // Bank -> Mine (Unemployed)
+            bankingState.addTransition("MineClose",
+                new ConditionDelegate[] { },
+                new ActionDelegate[] { new ActionDelegate(this.mineClosing) }, unemployedState);
+            // Bank -> Mine (reopen)
+            bankingState.addTransition("MineOpen",
+                new ConditionDelegate[] { },
+                new ActionDelegate[] { new ActionDelegate(this.mineOpening) }, miningState);
+            // Bank -> Mine
             bankingState.addTransition("tick",
                 new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, miningState);
 
-            // set resting transitions (while mine is closed)
+
+            // set unemployed transitions (while mine is closed)
             unemployedState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.parched) },
                 new ActionDelegate[] { }, drinkingState);
@@ -105,14 +156,7 @@ namespace Miner49er
                 new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.unemployed) }, unemployedState);
 
-            // *** PERVASIVE TRANSITIONS ***
-            // MineClose can interrupt ANY state -> go to Resting
-            addPervasiveTransition("MineClose",
-                new ConditionDelegate[] { },
-                new ActionDelegate[] { new ActionDelegate(this.mineClosing) }, unemployedState);
-
-            // MineOpen can interrupt ANY state -> go back to Mining
-            addPervasiveTransition("MineOpen",
+            unemployedState.addTransition("MineOpen",
                 new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.mineOpening) }, miningState);
 
@@ -166,36 +210,18 @@ namespace Miner49er
             bank +=2;
             Console.WriteLine("deposit a gold nugget");
         }
-
-        private void withdrawGold(FSA fsa)
-        {
-            gold +=2;
-            bank -=2;
-            Console.WriteLine("withdraw a gold nugget");
-        }
-
-        private void cantWithdraw(FSA fsa)
-        {
-            if (bank <= 0)
-            {
-                Console.WriteLine("No gold in the bank to withdraw.");
-            }
-        }
-        private void cantAfford(FSA fsa)
-        {
-            Console.WriteLine("Can't afford it! Need more money...");
-        }
         private void unemployed(FSA fsa)
         {
             Console.WriteLine("Saddly unemployed while mine is closed...");
         }
-        private void mineClosing(FSA fsa)
+        private void closeMine(FSA fsa)
         {
+            isMineOpen = false; 
             Console.WriteLine("Mine is closing! Time to rest.");
         }
-
-        private void mineOpening(FSA fsa)
+        private void openMine(FSA fsa)
         {
+            isMineOpen = true; 
             Console.WriteLine("Mine is open again! Back to work!");
         }
 

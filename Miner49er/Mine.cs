@@ -9,14 +9,14 @@ namespace Miner49er
         public int durability = 0;
         public int restoration = 0;
 
-        private Miner miner;
-
         State openState;
         State restoringState;
 
-        public Mine(Miner miner) : base("Mine")
+        EventBus eventBus;
+
+        public Mine(EventBus eb) : base("Mine")
         {
-            this.miner = miner;
+            eventBus = eb;
 
             openState = MakeNewState("Open");
             restoringState = MakeNewState("Restoring");
@@ -64,7 +64,7 @@ namespace Miner49er
         {
             restoration = 0;
             Console.WriteLine("Mine needs restoratoin. Please Leave");
-            miner.DoEvent("MineClose");
+            eventBus.DoEvent("MineClose");
         }
 
         private void restore(FSA fsa)
@@ -78,7 +78,7 @@ namespace Miner49er
             durability = 0;
             restoration = 0;
             Console.WriteLine("Mine restoration complete. Mine open.");
-            miner.DoEvent("MineOpen");
+            eventBus.DoEvent("MineOpen");
         }
     }
 }

@@ -5,9 +5,17 @@ namespace Miner49er
     class MainClass
     {
         public static void Main(string[] args) {
+
+            EventBus eventBus = new EventBus();
+
             //Set up the variables 
             Miner miner = new SimpleMiner();
-            Mine mine = new Mine(miner);
+            Mine mine = new Mine(eventBus);
+
+            //EventBus
+            eventBus.AddEventListener(mine);
+            eventBus.AddEventListener(miner);
+
             int secsPerTick = 1;
             Random myRandom = new Random(Environment.TickCount);
             int gameLengthInTics = (int)(myRandom.NextSingle() * 10) + 20;
