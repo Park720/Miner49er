@@ -1,22 +1,17 @@
 using System;
 namespace KAI.FSA
 {
-	/// <summary>
-	/// PervasiveFSAImpl extends FSAImpl to properly support pervasive transitions.
-	/// When the current state cannot handle an event, pervasive transitions are checked.
-	/// </summary>
 	public class PervasiveFSAImpl : FSAImpl
 	{
 		List<Transition> pervasiveTransitions = new List<Transition>();
 
-		public PervasiveFSAImpl(string name) : base(name)
+        // just call base constructor
+        public PervasiveFSAImpl(string name) : base(name)
 		{
 		}
 
-		/// <summary>
-		/// This method adds a pervasive transition to the FSA
-		/// </summary>
-		public override Transition addPervasiveTransition(String evt, ConditionDelegate[] conditions,
+        // adds a pervasive transition to the FSA
+        public override Transition addPervasiveTransition(String evt, ConditionDelegate[] conditions,
 			ActionDelegate[] actions, State nextState, String postEvent = null)
 		{
 			Transition t = new TransitionImpl(evt, conditions, actions, nextState, postEvent);
@@ -24,12 +19,9 @@ namespace KAI.FSA
 			return t;
 		}
 
-		/// <summary>
-		/// Override DoEvent: try current state first, then pervasive transitions
-		/// </summary>
-		public override bool DoEvent(String evt)
+        //overrided public virtual bool DoEvent(String evt) ... to check current state then check pervasive transitions when current state cannot handle event
+        public override bool DoEvent(String evt)
 		{
-			// First try the current state
 			if (currentState != null)
 			{
 				if (currentState.doEvent(this, evt))
@@ -37,14 +29,11 @@ namespace KAI.FSA
 					return true;
 				}
 			}
-			// If current state didn't handle it, try pervasive transitions
 			return firePervasiveTransition(evt);
 		}
 
-		/// <summary>
-		/// Fire the first matching pervasive transition
-		/// </summary>
-		private bool firePervasiveTransition(String evt)
+        // Check pervasive transitions for unhandled events
+        private bool firePervasiveTransition(String evt)
 		{
 			foreach (Transition t in pervasiveTransitions)
 			{
