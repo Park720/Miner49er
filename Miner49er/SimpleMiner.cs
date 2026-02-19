@@ -6,7 +6,7 @@ namespace Miner49er
     /// <summary>
     /// This class implements the Miner as described by the first state transition table
     /// </summary>
-    public class SimpleMiner : FSAImpl, Miner
+    public class SimpleMiner : PervasiveFSAImpl, Miner
     {
         /// Amount of gold nuggest in the miner's pockets ...
         public int gold = 0;
@@ -37,7 +37,6 @@ namespace Miner49er
             sleepingState = MakeNewState("Sleeping");
             unemployedState = MakeNewState("No Job");
 
-
             // set mining transitions
             //Mine -> Drink
             miningState.addTransition("tick",
@@ -46,7 +45,7 @@ namespace Miner49er
             //Mine -> Sleep
             miningState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.exhausted) },
-                new ActionDelegate[] { }, sleepingState);
+                new ActionDelegate[] { new ActionDelegate(this.moving) }, sleepingState);
             //Mine -> Bank
             miningState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.pocketsFull) },
@@ -66,6 +65,10 @@ namespace Miner49er
             drinkingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.exhausted) },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, sleepingState);
+            // Drink -> Unemployed (mine closed)
+            drinkingState.addTransition("tick",
+                new ConditionDelegate[] { new ConditionDelegate(this.mineClosed) },
+                new ActionDelegate[] { }, unemployedState);
             // Drink -> Mine
             drinkingState.addTransition("tick",
                 new ConditionDelegate[] { },
@@ -82,6 +85,10 @@ namespace Miner49er
             sleepingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.thirsty) },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, drinkingState);
+            // Sleep -> Unemployed (mine closed)
+            sleepingState.addTransition("tick",
+                new ConditionDelegate[] { new ConditionDelegate(this.mineClosed) },
+                new ActionDelegate[] { }, unemployedState);
             // Sleep -> Mine
             sleepingState.addTransition("tick",
                 new ConditionDelegate[] { },
@@ -101,6 +108,10 @@ namespace Miner49er
             bankingState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.exhausted) },
                 new ActionDelegate[] { new ActionDelegate(this.moving) }, sleepingState);
+            // Bank -> Unemployed (mine closed)
+            bankingState.addTransition("tick",
+                new ConditionDelegate[] { new ConditionDelegate(this.mineClosed) },
+                new ActionDelegate[] { }, unemployedState);
             // Bank -> Mine
             bankingState.addTransition("tick",
                 new ConditionDelegate[] { },
@@ -108,28 +119,29 @@ namespace Miner49er
 
 
             // set unemployed transitions (while mine is closed)
+            //unemployed -> Drink
             unemployedState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.parched) },
                 new ActionDelegate[] { }, drinkingState);
-
+            // unemployed -> Sleep
             unemployedState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.exhausted) },
                 new ActionDelegate[] { }, sleepingState);
-
+            // unemployed -> Bank (if they have gold in hand > 5)
             unemployedState.addTransition("tick",
                 new ConditionDelegate[] { new ConditionDelegate(this.pocketsNotEmpty) },
                 new ActionDelegate[] { }, bankingState);
-
+            // keep unemployed
             unemployedState.addTransition("tick",
                 new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.unemployed) }, unemployedState);
 
-            //Any State -> MineClose
+            //Any State -> MineClose (pervasive)
             addPervasiveTransition("MineClose",
                 new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.closeMine) }, unemployedState);
 
-            // Mine Open -> Any State
+            // Mine Open -> Any State (pervasive)
             addPervasiveTransition("MineOpen",
                 new ConditionDelegate[] { },
                 new ActionDelegate[] { new ActionDelegate(this.openMine) }, miningState);
@@ -155,8 +167,8 @@ namespace Miner49er
         /// </summary>
         private void takeDrink(FSA fsa)
         {
-            thirst -=2;
-            gold --;
+            thirst -= 2;
+            gold--;
             Console.WriteLine("Glug glug glug");
         }
 
@@ -171,7 +183,7 @@ namespace Miner49er
 
         private void takeSleep(FSA fsa)
         {
-            tired --;
+            tired--;
             Console.WriteLine("Zzz...");
         }
 
@@ -181,21 +193,21 @@ namespace Miner49er
         private void depositGold(FSA fsa)
         {
             gold -= 2;
-            bank +=2;
-            Console.WriteLine("deposit a gold nugget");
+            bank += 2;
+            Console.WriteLine("deposit gold nuggets");
         }
         private void unemployed(FSA fsa)
         {
-            Console.WriteLine("Saddly unemployed while mine is closed...");
+            Console.WriteLine("Saddly unemployed while mine is closed... Lets wait");
         }
         private void closeMine(FSA fsa)
         {
-            isMineOpen = false; 
+            isMineOpen = false;
             Console.WriteLine("Mine is closing! Time to rest.");
         }
         private void openMine(FSA fsa)
         {
-            isMineOpen = true; 
+            isMineOpen = true;
             Console.WriteLine("Mine is open again! Back to work!");
         }
 
@@ -211,7 +223,7 @@ namespace Miner49er
 
         private void dig(FSA fsa)
         {
-            gold+= 2;
+            gold += 2;
             thirst++;
             tired++;
             Console.WriteLine("Miner is digging.");
@@ -232,15 +244,13 @@ namespace Miner49er
 
         private Boolean isTired(FSA fsa) => tired > 0;
 
-        private Boolean hasGoldInHand(FSA fsa) => gold >= 0;
-
-        private Boolean hasGoldInBank(FSA fsa) => bank >= 0;
+        private Boolean mineClosed(FSA fsa) => !isMineOpen;
 
 
 
         public void printStatus()
         {
-            Console.WriteLine("Thirst: "+thirst+ " Tired: "+tired +" Gold: "+gold+" Bank: "+bank);
+            Console.WriteLine("Thirst: " + thirst + " Tired: " + tired + " Gold: " + gold + " Bank: " + bank);
         }
     }
 }

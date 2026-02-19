@@ -1,3 +1,4 @@
+using System;
 using KAI.FSA;
 
 namespace Miner49er
